@@ -231,7 +231,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .swiper {
   width: 100%;
   /* border-top: 2px rgb(100, 100, 100) solid; */
@@ -260,6 +260,7 @@ export default {
   text-align: center;
   font-size: 12px;
   margin: 0 5px;
+  z-index: 99;
 }
 .indi-item.active {
   background-color: rgba(212,62,46,1.0);

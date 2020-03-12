@@ -14,6 +14,7 @@ export default {
     GoodsListItem
   },
   props: {
+    // 获取商品所有信息
     goods: {
       type: Array,
       default () {
@@ -24,11 +25,10 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .goods-list{
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
 }
-
 </style>

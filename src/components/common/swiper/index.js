@@ -2,4 +2,4 @@
 import Swiper from './Swiper.vue'
 import SwiperItem from './SwiperItem.vue'
 
-export {SwiperItem, Swiper}
+export { SwiperItem, Swiper }

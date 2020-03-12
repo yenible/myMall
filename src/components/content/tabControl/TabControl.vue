@@ -35,7 +35,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .tab-control{
   display: flex;
   width: 100%;
@@ -44,7 +44,7 @@ export default {
   line-height: 40px;
   text-align: center;
   background-color: white;
-  z-index: 999;
+  z-index: 5;
 }
 .tab-control .text{
   flex: 1;

@@ -1,5 +1,5 @@
 <template>
-<div id="home">
+<div class="home">
   <nav-bar class="home-nav">
     <!-- left插槽 -->
     <template v-slot:left>
@@ -23,6 +23,10 @@
     </template>
   </nav-bar>
 
+  <scroll class="content" ref="scroll" :probe-type="3"
+  :pull-up-load="true"
+  @scroll="contentScroll"
+  @pullingUp="loadMore">
   <!-- 插入home页面的轮播图插件homeSwiper -->
   <home-swiper :banner=banners></home-swiper>
 
@@ -36,7 +40,10 @@
   <tab-control @tabClick='tabClick' class="tab-control" :titles="['流行','新款','精选']"></tab-control>
 
   <!-- 插入商品信息栏 -->
-  <goods-list :goods="showGoods"></goods-list>
+
+    <goods-list :goods="showGoods"></goods-list>
+  </scroll>
+  <back-top @click.native="backClick" v-show="isBackTopShow"></back-top>
 </div>
 
 </template>
@@ -44,8 +51,12 @@
 <script>
 // 公共组件
 import NavBar from 'components/common/navigationbar/NavBar.vue'
+import Scroll from 'components/common/scroll/Scroll.vue'
+
+// 项目公共组件
 import TabControl from 'components/content/tabControl/TabControl.vue'
 import GoodsList from 'components/content/goods/GoodsList.vue'
+import BackTop from 'components/content/backTop/BackTop.vue'
 
 // home子组件
 import homeSwiper from './childComps/homeSwiper'
@@ -68,7 +79,8 @@ export default {
         new: { page: 0, list: [] },
         sell: { page: 0, list: [] }
       },
-      currentType: 'pop'
+      currentType: 'pop',
+      isBackTopShow: false
     }
   },
   computed: {
@@ -82,7 +94,9 @@ export default {
     homeSwiper,
     recommendView,
     featureView,
-    GoodsList
+    GoodsList,
+    Scroll,
+    BackTop
   },
   created () {
     this.getHomeMutidata()
@@ -109,6 +123,26 @@ export default {
           this.currentType = 'sell'
           break
       }
+    },
+    backClick: function () {
+      console.log(123)
+      // 直接用refs调用指定标签的方法,第三个参数是时间毫秒
+      this.$refs.scroll.scrollTo(0, 0, 500)
+    },
+    contentScroll: function (position) {
+      // console.log(position)
+      if (position.y < -1000) {
+        this.isBackTopShow = true
+      } else {
+        this.isBackTopShow = false
+      }
+      // console.log(this.isBackTopShow)
+    },
+    loadMore: function () {
+      this.getHomeGoods(this.currentType)
+      console.log('daodi')
+      this.$refs.scroll.finishPullUp()
+      this.$refs.scroll.scroll.refresh()
     },
 
     /* 网络请求方法 */
@@ -143,22 +177,31 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .home{
   width: 100%;
+  height: calc(100vh - 49);
+  /* overflow: hidden; */
 }
   /* 此时首页栏还是遮挡了部分的图片 */
   .home-nav{
     background-color: var(--color-tint);
-    position: fixed;
+    /* position: fixed; */
     left: 0;
     right: 0;
     top: 0;
-    z-index: 99;
+    z-index: 9;
     width: 100%;
   }
   .tab-control{
     position: sticky;
     top: 44px;
+    /* z-index: 9; */
+  }
+  .content{
+    /* margin-top: 44px; */
+    height: calc(100vh - 93px);
+    /* height: 500px; */
+    overflow: hidden;
   }
 </style>
