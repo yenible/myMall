@@ -9,6 +9,7 @@ const Home = () => import('../views/home/Home.vue')
 const Cart = () => import('../views/cart/Cart.vue')
 const Category = () => import('../views/category/Category.vue')
 const Profile = () => import('../views/profile/Profile.vue')
+const detail = () => import('../views/detail/detail.vue')
 
 // 创建router
 const routes = [
@@ -31,6 +32,10 @@ const routes = [
   {
     path: '/profile',
     component: Profile
+  },
+  {
+    path: '/detail/:id',
+    component: detail
   }
 ]
 

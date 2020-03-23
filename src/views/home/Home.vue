@@ -23,12 +23,20 @@
     </template>
   </nav-bar>
 
+  <tab-control @tabClick='tabClick'
+   ref="tabControl1"
+    :titles="['流行','新款','精选']"
+    v-show="isTabFixed"
+    class="tabControlZoom"
+  ></tab-control>
+
   <scroll class="content" ref="scroll" :probe-type="3"
   :pull-up-load="true"
   @scroll="contentScroll"
-  @pullingUp="loadMore">
+  @pullingUp="loadMore"
+  >
   <!-- 插入home页面的轮播图插件homeSwiper -->
-  <home-swiper :banner=banners></home-swiper>
+  <home-swiper :banner=banners @swiperImagesLoad="swiperImagesLoad"></home-swiper>
 
   <!-- 插入首页的提示信息区域，即小圈圈 -->
   <recommend-view :recommend=recommend v-if=recommend.length></recommend-view>
@@ -37,7 +45,10 @@
   <feature-view></feature-view>
 
   <!-- 插入页面信息滚动内容 -->
-  <tab-control @tabClick='tabClick' class="tab-control" :titles="['流行','新款','精选']"></tab-control>
+  <tab-control @tabClick='tabClick'
+   ref="tabControl2"
+    :titles="['流行','新款','精选']"
+    ></tab-control>
 
   <!-- 插入商品信息栏 -->
 
@@ -65,7 +76,9 @@ import featureView from './childComps/featureView'
 
 // 只有用了export default导出才能省略大括号
 import { getHomeMutidata, getHomeGoods } from 'network/home'
-
+// import { debounce } from 'common/utils'
+import { POP, NEW, SELL, BACKTOP_DISTANCE } from 'common/const.js'
+import { itemListenerMixin } from 'common/mixin.js'
 export default {
   name: 'Home',
   data () {
@@ -79,8 +92,11 @@ export default {
         new: { page: 0, list: [] },
         sell: { page: 0, list: [] }
       },
-      currentType: 'pop',
-      isBackTopShow: false
+      currentType: POP,
+      isBackTopShow: false,
+      tabOffsetTop: 0,
+      isTabFixed: false,
+      saveY: 0
     }
   },
   computed: {
@@ -99,10 +115,42 @@ export default {
     BackTop
   },
   created () {
+    // a.获得顶部多个数据
     this.getHomeMutidata()
-    this.getHomeGoods('pop')
-    this.getHomeGoods('new')
-    this.getHomeGoods('sell')
+
+    // b.获取商品数据
+    this.getHomeGoods(POP)
+    this.getHomeGoods(NEW)
+    this.getHomeGoods(SELL)
+
+    // 手动调用一次控制栏的index
+    this.tabClick(0)
+  },
+  // mounted () {
+  //   // 1.图片加载监听
+  //   // 防抖动函数,通过这个refresh函数能很好的减少调用refresh的频率
+  //   const refresh = debounce(this.$refs.scroll.refresh, 250)
+  //   // 监听图片加载
+  //   // this.$bus.$on('homeItemImageLoad', () => {
+  //   //   // 调用scroll的函数
+  //   //   this.$refs.scroll && refresh()
+  //   // })
+  //   // 保存调用的函数，方便再destory是输入
+  //   this.itemImgListener = () => {
+  //     refresh()
+  //   }
+  //   this.$bus.$on('itemImageLoad', this.itemImgListener)
+  // },
+  activated () {
+    this.$refs.scroll.refresh()
+    this.$refs.scroll.scrollTo(0, this.saveY, 0)
+  },
+  deactivated () {
+    // 1.记录首页路由切换时的位置
+    this.saveY = this.$refs.scroll.getScrollY()
+    // 2.销毁首页图片监听
+    // 销毁图片的事件监听
+    this.$bus.$off('itemImageLoad', this.itemImgListener)
   },
   methods: {
     /* 这里是事件监听方法 */
@@ -114,34 +162,50 @@ export default {
       // console.log(index)
       switch (index) {
         case 0:
-          this.currentType = 'pop'
+          this.currentType = POP
           break
         case 1:
-          this.currentType = 'new'
+          this.currentType = NEW
           break
         case 2:
-          this.currentType = 'sell'
+          this.currentType = SELL
           break
+      }
+      if (this.$refs.tabControl1 !== undefined) {
+        this.$refs.tabControl1.currentIndex = index
+        this.$refs.tabControl2.currentIndex = index
       }
     },
     backClick: function () {
-      console.log(123)
       // 直接用refs调用指定标签的方法,第三个参数是时间毫秒
       this.$refs.scroll.scrollTo(0, 0, 500)
     },
     contentScroll: function (position) {
+      // 判断返回首页箭头是否显示
       // console.log(position)
-      if (position.y < -1000) {
+      if (position.y < -BACKTOP_DISTANCE) {
         this.isBackTopShow = true
       } else {
         this.isBackTopShow = false
       }
-      // console.log(this.isBackTopShow)
+
+      // 决定tabControl是否吸停
+      if (position.y < -this.tabOffsetTop + 44) {
+        this.isTabFixed = true
+      } else {
+        this.isTabFixed = false
+      }
     },
+    swiperImagesLoad: function () {
+    // 2.获取tabContril
+    // this.tabOffsetTop = this.$refs.tabControl
+      this.tabOffsetTop = this.$refs.tabControl2.$el.offsetTop
+    },
+
     loadMore: function () {
       this.getHomeGoods(this.currentType)
-      console.log('daodi')
       this.$refs.scroll.finishPullUp()
+      // 刷新页面的图片后的计算高度
       this.$refs.scroll.scroll.refresh()
     },
 
@@ -164,16 +228,18 @@ export default {
       const page = this.goods[type].page + 1
       getHomeGoods(type, page).then((result) => {
         // console.log(result)
-        for (const i of result.data.data.list) {
-          this.goods[type].list.push(i)
-        }
+        // for (const i of result.data.data.list) {
+        //   this.goods[type].list.push(i)
+        // }
         // push...相当于上面的循环
         this.goods[type].list.push(...result.data.data.list)
         this.goods[type].page += 1
         // console.log(this.goods[type].list)
+        //   this.$refs.scroll.scroll.refresh()
       })
     }
-  }
+  },
+  mixins: [itemListenerMixin]
 }
 </script>
 
@@ -187,21 +253,18 @@ export default {
   .home-nav{
     background-color: var(--color-tint);
     /* position: fixed; */
-    left: 0;
-    right: 0;
-    top: 0;
-    z-index: 9;
     width: 100%;
-  }
-  .tab-control{
-    position: sticky;
-    top: 44px;
-    /* z-index: 9; */
   }
   .content{
     /* margin-top: 44px; */
     height: calc(100vh - 93px);
     /* height: 500px; */
     overflow: hidden;
+  }
+  .tabControlZoom{
+    top: 44px;
+    left: 0;
+    right: 0;
+    position: fixed;
   }
 </style>

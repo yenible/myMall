@@ -1,6 +1,6 @@
 <template>
   <div class="swiper" >
-    <div class="swiper-img" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd">
+    <div ref="swiperImg" class="swiper-img" @touchstart="touchStart" @touchmove="touchMove" @touchend="touchEnd">
       <slot></slot>
     </div>
 
@@ -137,7 +137,8 @@ export default {
     handleDOM () {
       // 用于操作dom元素给轮播图的图片首尾加图片
       // 获取整个轮播大框架
-      const swiper = document.querySelector('.swiper-img')
+      // const swiper = document.querySelector('.swiper-img')
+      const swiper = this.$refs.swiperImg
       // 获取单个滑动的图片
       const imagesList = swiper.getElementsByClassName('slide')
       // 判断当前的图片个数
@@ -260,7 +261,7 @@ export default {
   text-align: center;
   font-size: 12px;
   margin: 0 5px;
-  z-index: 99;
+  z-index: 9
 }
 .indi-item.active {
   background-color: rgba(212,62,46,1.0);

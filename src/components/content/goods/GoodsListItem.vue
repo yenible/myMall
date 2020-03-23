@@ -1,7 +1,6 @@
 <template>
-  <div class="goods">
-    <a :href="goodsItem.link">
-      <img :src="goodsItem.show.img" alt="">
+  <div class="goods" @click="clickItem" v-if="Object.keys(goodsItem).length !== 0">
+      <img v-lazy="showGoods" alt="" @load="imgload">
       <div class="goods-info">
         <p>{{goodsItem.title}}</p>
         <!-- 价格 -->
@@ -9,7 +8,6 @@
         <!-- 收藏 -->
         <span class="collect">{{goodsItem.cfav}}</span>
       </div>
-    </a>
   </div>
 </template>
 
@@ -22,6 +20,29 @@ export default {
       default () {
         return {}
       }
+    }
+  },
+  computed: {
+    showGoods: function () {
+      // console.log(this.goodsItem.image || (this.goodsItem.show && this.goodsItem.show.img) || this.goodsItem.img)
+      return this.goodsItem.image || (this.goodsItem.show && this.goodsItem.show.img) || this.goodsItem.img
+      // return 0
+    }
+  },
+  methods: {
+    imgload: function () {
+      // 解决在home和detail图片加载信息的传递方法
+      // a.根据route不同路径传递发送不同的事件
+      // if (this.$route.path.indexOf('/home')) {
+      //   this.$bus.$emit('homeItemImageLoad', () => {})
+      // } else if (this.$route.path.indexOf('/detail')) {
+      //   this.$bus.$emit('detailItemImageLoad', () => {})
+      // }
+      // b.采用相同的事件，但是每次切换路由销毁监听
+      this.$bus.$emit('itemImageLoad', () => {})
+    },
+    clickItem: function () {
+      this.$router.push('/detail/' + this.goodsItem.iid)
     }
   }
 }

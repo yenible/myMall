@@ -1,107 +1,161 @@
 <template>
   <div class="category">
-    <div class="wrapper">
-      <ul class="content">
-        <li>1</li>
-        <li>2</li>
-        <li>3</li>
-        <li>4</li>
-        <li>5</li>
-        <li>6</li>
-        <li>7</li>
-        <li>8</li>
-        <li>9</li>
-        <li>10</li>
-        <li>11</li>
-        <li>12</li>
-        <li>13</li>
-        <li>14</li>
-        <li>15</li>
-        <li>16</li>
-        <li>17</li>
-        <li>18</li>
-        <li>19</li>
-        <li>20</li>
-        <li>21</li>
-        <li>22</li>
-        <li>23</li>
-        <li>24</li>
-        <li>25</li>
-        <li>26</li>
-        <li>27</li>
-        <li>28</li>
-        <li>29</li>
-        <li>30</li>
-        <li>31</li>
-        <li>32</li>
-        <li>33</li>
-        <li>34</li>
-        <li>35</li>
-        <li>36</li>
-        <li>37</li>
-        <li>38</li>
-        <li>39</li>
-        <li>40</li>
-        <li>41</li>
-        <li>42</li>
-        <li>43</li>
-        <li>44</li>
-        <li>45</li>
-        <li>46</li>
-        <li>47</li>
-      </ul>
+    <category-nav-bar class="nav-bar" />
+    <div class="content">
+      <category-subject @selectSubject="getCategoryInfo" :subjectInfo="categorySubject"></category-subject>
+    <scroll ref="scroll">
+      <category-sub-detail-info :subDetailInfo="subInfo" />
+        <tab-control @tabClick='changeType'
+   ref="tabControl2"
+    :titles="['流行','新款','精选']"
+    ></tab-control>
+    <!-- 插入商品信息栏 -->
+    <goods-list :goods="categoryGoodsInfo"></goods-list>
+    </scroll>
     </div>
+
   </div>
 </template>
 
 <script>
-import BScroll from 'better-scroll'
+// import BScroll from 'better-scroll'
+
+// 导入页面子组件
+import CategorySubject from './childComps/CategorySubject'
+import CategoryNavBar from './childComps/CategoryNavBar'
+import CategorySubDetailInfo from './childComps/CategorySubDetailInfo'
+
+import TabControl from 'components/content/tabControl/TabControl.vue'
+import GoodsList from 'components/content/goods/GoodsList.vue'
+import Scroll from 'components/common/scroll/Scroll.vue'
+
+import { getCategory, getSubcategory, getCategoryDetail } from 'network/category'
+// import { getCategory, getSubcategory } from 'network/category'
+import { itemListenerMixin } from 'common/mixin.js'
 
 /* eslint-disable no-new */
 export default {
   name: 'Category',
+  components: {
+    CategorySubject,
+    CategoryNavBar,
+    CategorySubDetailInfo,
+    Scroll,
+    TabControl,
+    GoodsList
+  },
   data () {
     return {
-      scroll: null
+      // 存储分类的主题信息
+      categorySubject: [],
+      // 存储每个主题的详细信息
+      categoryDetailInfo: [],
+      // 当前的主题下标
+      currentSubIndex: -1,
+      subInfo: [],
+      goodsInfo: [],
+      currentType: 'pop'
     }
   },
-  mounted () {
-    // console.log(document.querySelector('.wrapper'))
-    // console.log(this.$refs.aaa)
-    this.scroll = new BScroll('.wrapper', {
-      // 值为1 的时候不触发监听
-      // 值为2的时候在滚动时期触发实时监听,即滑动松手后继续滑动的动画期间不监听
-      // 值为3的时候在滚动时期以及在动量和弹跳动画期间也实时触发
-      // 监听scroll事件
-      probeType: 1,
-      // 默认是禁止点击事件监听触发
-      click: true,
-      // 上拉到底事件触发，见天给pullingUp事件
-      pullUpLoad: true
-    })
-    // 监听位置
-    this.scroll.on('scroll', (position) => {
-      // console.log(position)
-    })
-
-    this.scroll.on('pullingUp', () => {
-      console.log('daodi')
-      setTimeout(() => {
-        // 用于结束一次的pullup好再一次触发？但是目前好像....
-        this.scroll.finishPullUp()
-      }, 2000)
-    })
-  }
+  computed: {
+    categoryGoodsInfo: function () {
+      // console.log(123)
+      if (!this.categoryDetailInfo[this.currentSubIndex]) return []
+      // const type =
+      return this.categoryDetailInfo[this.currentSubIndex].categoryDetailInfo[this.currentType]
+    }
+  },
+  created () {
+    this.currentSubIndex = 0
+    this.getCategorySubInfo()
+  },
+  methods: {
+    // 获取分类主题的信息，同时对categoryDetailInfo进行初始化，使其能存储所有对应主题的信息
+    getCategorySubInfo () {
+      getCategory().then((result) => {
+        // 保存主题信息
+        this.categorySubject = result.data.data.category.list
+        // 初始化categoryDetailInfo
+        for (let i = 0; i < this.categorySubject.length; i++) {
+          // 每个主题对应的编号分别初始化到categoryDetailInfo中
+          // categoryDetailInfo分别存储类别的图片信息以及对应的推荐商品信息
+          this.categoryDetailInfo[i] = {
+            // 这里是分类的信息
+            categoryInfo: [],
+            // 这里是分类页面具体的推荐商品信息
+            categoryDetailInfo: {
+              pop: [],
+              new: [],
+              sell: []
+            }
+          }
+        }
+        // 转换数组，否则无法识别下标?
+        this.categoryDetailInfo = JSON.parse(JSON.stringify(this.categoryDetailInfo))
+        // 获取第一个主题信息
+        this.getCategoryInfo(0)
+        // console.log((result))
+        // console.log((this.categorySubject))
+      }).catch((err) => {
+        console.log(err)
+      })
+    },
+    // 切换主题后对切换后的主题进行数据的输入或者数据的更新
+    getCategoryInfo (subIndex) {
+      this.currentSubIndex = subIndex
+      // 根据subIndex获取maitkey
+      const maitKey = this.categorySubject[subIndex].maitKey
+      getSubcategory(maitKey).then((result) => {
+        this.categoryDetailInfo[subIndex].categoryInfo = result.data.data.list
+        // console.log(this.categoryDetailInfo[subIndex].categoryInfo)
+        this.subInfo = result.data.data.list
+        // console.log(this.subInfo)
+        // 获取goods三种的信息
+        this.getDetailInfo(0)
+        this.getDetailInfo(1)
+        this.getDetailInfo(2)
+      }).catch((err) => {
+        console.log(err)
+      })
+    },
+    // 切换controlTab进行的数据更新
+    getDetailInfo (typeIndex) {
+      this.changeType(typeIndex)
+      const type = this.currentType
+      const miniWallkey = this.categorySubject[this.currentSubIndex].miniWallkey
+      getCategoryDetail(miniWallkey, type).then((result) => {
+        this.categoryDetailInfo[this.currentSubIndex].categoryDetailInfo[type] = result.data
+        this.goodsInfo = result.data
+        // console.log(this.categoryDetailInfo)
+      }).catch((err) => {
+        console.log(err)
+      })
+    },
+    // 用于修改当前的type
+    changeType: function (index) {
+      switch (index) {
+        case 0:
+          this.currentType = 'pop'
+          break
+        case 1:
+          this.currentType = 'new'
+          break
+        case 2:
+          this.currentType = 'sell'
+          break
+      }
+      console.log(this.currentType)
+      console.log(this.categoryDetailInfo)
+    }
+  },
+  mixins: [itemListenerMixin]
 }
 </script>
 
 <style scoped>
-.wrapper{
-  height: 250px;
-  background: aqua;
-  /* width: 100%; */
-
+.content{
+  display: flex;
+  height: calc(100vh - 44px - 49px);
   overflow: hidden;
-  /* overflow-y: scroll; */
 }
 </style>
